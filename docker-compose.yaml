@@ -1,88 +1,115 @@
-version: 3
+version: "3"
 services:
-  mongo:
+  mongo-rs1:
     image: mongo
-    container_name: mongo-db
+    container_name: mongo-rs-db1
     restart: always
     ports:
       - 27017:27017
     networks:
       - getir-network
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+  mongo-rs2:
+    image: mongo
+    container_name: mongo-rs-db2
+    restart: always
+    ports:
+      - 27018:27017
+    networks:
+      - getir-network
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+  mongo-rs3:
+    image: mongo
+    container_name: mongo-rs-db3
+    restart: always
+    ports:
+      - 27019:27017
+    networks:
+      - getir-network
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+
+  mongoclient-rs:
+      image: ugur4151/mongoclient-rs
+      networks:
+        - getir-network
+      depends_on:
+        - mongo-rs1
+
   book:
-    image: book
+    image: ugur4151/book
     container_name: book
     ports:
       - 8081:8081
-    build:
-      book
     depends_on:
-      - mongo
+      - mongo-rs1
       - eureka-server
       - cloud-gateway
     networks:
       - getir-network
 
   order:
-    image: order
+    image: ugur4151/order
     container_name: order
     ports:
       - 8082:8082
-    build:
-      order/
     depends_on:
-      - mongo
+      - customer
+      - book
+      - mongo-rs1
       - eureka-server
       - cloud-gateway
     networks:
       - getir-network
   customer:
-    image: customer
+    image: ugur4151/customer
     container_name: customer
     ports:
       - 8080:8080
-    build:
-      customer/
     depends_on:
-      - mongo
+      - mongo-rs1
       - eureka-server
       - cloud-gateway
     networks:
       - getir-network
   statistics:
-    image: statistics
+    image: ugur4151/statistics
     container_name: statistics
     ports:
       - 8083:8083
-    build:
-      statistics/
     depends_on:
-      - mongo
+      - mongo-rs1
       - eureka-server
       - cloud-gateway
       - order
     networks:
       - getir-network
   cloud-gateway:
-    image: cloud-gateway
+    image: ugur4151/cloud-gateway
     container_name: cloud-gateway
     ports:
       - 8000:8000
-    build:
-      cloud-gateway/
     depends_on:
-      - mongo
       - eureka-server
+      - mongo-rs1
     networks:
       - getir-network
   eureka-server:
-    image: eureka-server
+    image: ugur4151/eureka-server
     container_name: eureka-server
     ports:
       - 8761:8761
-    build:
-      eureka-server/
     depends_on:
-      - mongo
+      - mongo-rs1
+    networks:
+      - getir-network
+  auth:
+    image: ugur4151/auth
+    container_name: auth
+    ports:
+      - 6000:6000
+    depends_on:
+      - eureka-server
+      - cloud-gateway
     networks:
       - getir-network
 
